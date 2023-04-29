@@ -7,14 +7,14 @@ import (
 
 type Repository interface {
 	GetPlayer(playerID int, txn *sql.Tx) (player.Player, int)
-	CreatePlayer(player player.Player, txn *sql.Tx) int
-	UpdatePlayer(playerID int, txn *sql.Tx) int
-	DeletePlayer(playerID int, txn *sql.Tx) int
+	// CreatePlayer(player player.Player, txn *sql.Tx) int
+	// UpdatePlayer(playerID int, txn *sql.Tx) int
+	// DeletePlayer(playerID int, txn *sql.Tx) int
 }
 
-type playerRepository struct{}
+type PlayerRepository struct{}
 
-func GetPlayer(playerID int, txn *sql.Tx) (player.Player, int) {
+func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, int) {
 	var player player.Player
 	stmt, err := txn.Prepare(`SELECT 
 								player_id,
@@ -40,5 +40,5 @@ func GetPlayer(playerID int, txn *sql.Tx) (player.Player, int) {
 	if err != nil {
 		return player, -1
 	}
-	return player, 300 //TODO status
+	return player, 500 //TODO status
 }

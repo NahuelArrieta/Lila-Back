@@ -1,18 +1,17 @@
 package main
 
 import (
-	connection "Lila-Back/Helpers/Connection"
-	"Lila-Back/internal/infraestructure/playerRepository"
+	"Lila-Back/internal/server"
+	"log"
 )
 
 func main() {
-	// TODO: get port
-	txn, err := connection.Connect()
+	port := "8080"
+
+	serv, err := server.New(port)
 	if err != nil {
-		print(err.Error())
-	} else {
-		player, _ := playerRepository.GetPlayer(1, txn)
-		player.ToString()
+		log.Fatal(err)
 	}
+	serv.Start()
 
 }
