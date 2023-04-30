@@ -15,7 +15,7 @@ type Handler interface {
 	GetPlayer(playerID int, txn *sql.Tx) (interface{}, int)
 	CreatePlayer(player player.Player, txn *sql.Tx) int
 	UpdatePlayer(player player.Player, txn *sql.Tx) int
-	// DeletePlayer(playerID int, txn *sql.Tx) int
+	DeletePlayer(playerID int, txn *sql.Tx) int
 }
 
 func (ph PlayerHandler) GetPlayer(playerID int, txn *sql.Tx) (interface{}, int) {
@@ -32,4 +32,8 @@ func (ph PlayerHandler) CreatePlayer(player player.Player, txn *sql.Tx) int {
 
 func (ph PlayerHandler) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 	return ph.Repository.UpdatePlayer(player, txn)
+}
+
+func (ph PlayerHandler) DeletePlayer(playerID int, txn *sql.Tx) int {
+	return ph.Repository.DeletePlayer(playerID, txn)
 }

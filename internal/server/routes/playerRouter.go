@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/cors"
 )
 
 type playerRouter struct {
@@ -138,12 +139,48 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (pr playerRouter) DeletePlayer(w http.ResponseWriter, r *http.Request) {
+	txn, err := connection.Connect()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	playerID, err := strconv.Atoi(chi.URLParam(r, "playerId"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		// _, err = w.Write([]byte("400 Bad Request"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	status := pr.Handler.DeletePlayer(playerID, txn) // TODO cambia
+	w.WriteHeader(status)
+
+	defer txn.Rollback()
+	if status == http.StatusOK {
+		txn.Commit()
+	}
+}
+
 func (pr *playerRouter) Routes() http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+	}))
 
 	r.Get("/{playerId}", pr.GetPlayer)
 	r.Post("/", pr.CreatePlayer)
 	r.Put("/{playerId}", pr.UpdatePlayer)
+	r.Delete("/{playerId}", pr.DeletePlayer)
 
 	return r
 }

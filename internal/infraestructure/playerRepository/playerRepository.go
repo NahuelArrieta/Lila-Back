@@ -11,7 +11,7 @@ type Repository interface {
 	GetPlayer(playerID int, txn *sql.Tx) (player.Player, int)
 	CreatePlayer(player player.Player, txn *sql.Tx) int
 	UpdatePlayer(player player.Player, txn *sql.Tx) int
-	// DeletePlayer(playerID int, txn *sql.Tx) int
+	DeletePlayer(playerID int, txn *sql.Tx) int
 }
 
 type PlayerRepository struct{}
@@ -27,6 +27,7 @@ func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, 
 							FROM player
 							WHERE
 								player_id = ?;`)
+	defer stmt.Close()
 	if err != nil {
 		return player, http.StatusInternalServerError
 	}
@@ -90,8 +91,8 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 								player_rank = ?,
 								winrate = ?
 							WHERE player_id = ?`)
+	defer stmt.Close()
 	if err != nil {
-		print(err.Error())
 		return http.StatusInternalServerError
 	}
 
@@ -103,9 +104,28 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 		player.Id,
 	)
 	if err != nil {
-		print(err.Error())
 		return http.StatusInternalServerError
 	}
 
 	return http.StatusOK
+}
+
+func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
+	stmt, err := txn.Prepare(`UPDATE player SET
+								active = False
+							WHERE player_id = ?`)
+	defer stmt.Close()
+	if err != nil {
+		return http.StatusInternalServerError
+	}
+
+	_, err = stmt.Exec(
+		playerID,
+	)
+	if err != nil {
+		return http.StatusInternalServerError
+	}
+
+	return http.StatusOK
+
 }
