@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"Lila-Back/pkg/Domain/player"
 	"Lila-Back/pkg/Handlers/playerHandler"
 	connection "Lila-Back/pkg/Helpers/Connection"
 	"encoding/json"
@@ -9,14 +10,13 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/cors"
 )
 
 type playerRouter struct {
 	Handler playerHandler.Handler
 }
 
-// var qlCon *sql.DB
+// var qlCon *sql.DB  --- TODO
 
 func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	txn, err := connection.Connect()
@@ -39,8 +39,8 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	player, _ := pr.Handler.GetPlayer(playerID, txn) //TODO recuperar status
-	// w.WriteHeader(status.StatusCode()) TODO
+	player, status := pr.Handler.GetPlayer(playerID, txn) //TODO recuperar status
+	w.WriteHeader(status)
 	resp, _ := json.Marshal(player)
 	_, err = w.Write([]byte(resp))
 	if err != nil {
@@ -48,20 +48,26 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
+	//TODO
+	txn, _ := connection.Connect()
+	player := &player.Player{
+		Name:    "Player0",
+		Level:   "0",
+		Rank:    "0",
+		Winrate: "0",
+	}
+
+	status := pr.Handler.CreatePlayer(*player, txn)
+	w.WriteHeader(status)
+
+}
+
 func (pr *playerRouter) Routes() http.Handler {
 	r := chi.NewRouter()
 
-	// Basic CORS
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
-		MaxAge:           300,
-	}))
-
 	r.Get("/{playerId}", pr.GetPlayer)
+	r.Post("/", pr.CreatePlayer)
 
 	return r
 }

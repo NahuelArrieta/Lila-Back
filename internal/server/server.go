@@ -11,6 +11,7 @@ import (
 
 type Server struct {
 	server *http.Server
+	port   string
 }
 
 func New(port string) (*Server, error) {
@@ -25,11 +26,11 @@ func New(port string) (*Server, error) {
 		WriteTimeout: 100 * time.Second,
 	}
 
-	server := Server{server: serv}
+	server := Server{server: serv, port: port}
 	return &server, nil
 }
 
 func (serv *Server) Start() {
-	log.Printf("Servidor corriendo")
+	log.Printf("Server running at port " + serv.port)
 	log.Fatal(serv.server.ListenAndServe())
 }
