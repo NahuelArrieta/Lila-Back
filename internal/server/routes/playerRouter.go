@@ -41,7 +41,16 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 
 	player, status := pr.Handler.GetPlayer(playerID, txn) //TODO recuperar status
 	w.WriteHeader(status)
-	resp, _ := json.Marshal(player)
+	resp, err := json.Marshal(player)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
 	_, err = w.Write([]byte(resp))
 	if err != nil {
 		fmt.Println("Internal Fatal Error")
@@ -49,17 +58,39 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
-	//TODO
-	txn, _ := connection.Connect()
+	txn, err := connection.Connect()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
 	player := &player.Player{
-		Name:    "Player0",
-		Level:   "0",
-		Rank:    "0",
-		Winrate: "0",
+		Level:   0,
+		Rank:    0,
+		Winrate: 0,
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&player)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
 	}
 
 	status := pr.Handler.CreatePlayer(*player, txn)
 	w.WriteHeader(status)
+
+	defer txn.Rollback()
+	if status == http.StatusOK {
+		txn.Commit()
+	}
 
 }
 

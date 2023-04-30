@@ -5,9 +5,9 @@ import "fmt"
 type Player struct {
 	Id      int    `json:"id"`
 	Name    string `json:"name"`
-	Level   string `json:"level"`
-	Rank    string `json:"rank"`
-	Winrate string `json:"winrate"`
+	Level   int    `json:"level"`
+	Rank    int    `json:"rank"`
+	Winrate int    `json:"winrate"`
 }
 
 //TODO scar esto

@@ -27,6 +27,5 @@ func (ph PlayerHandler) GetPlayer(playerID int, txn *sql.Tx) (interface{}, int) 
 }
 
 func (ph PlayerHandler) CreatePlayer(player player.Player, txn *sql.Tx) int {
-	// TODO
 	return ph.Repository.CreatePlayer(player, txn)
 }

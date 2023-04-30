@@ -54,6 +54,7 @@ func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
 								player_rank,
 								winrate)
 							VALUES (?,?,?,?);`)
+	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
 	}
