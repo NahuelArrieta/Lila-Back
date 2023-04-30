@@ -69,12 +69,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	player := &player.Player{
-		Level:   0,
-		Rank:    0,
-		Winrate: 0,
-		Active:  true,
-	}
+	var player player.Player
 
 	err = json.NewDecoder(r.Body).Decode(&player)
 	if err != nil {
@@ -86,7 +81,12 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := pr.Handler.CreatePlayer(*player, txn)
+	player.Level = 0
+	player.Rank = 0
+	player.Winrate = 0
+	player.Active = true
+
+	status := pr.Handler.CreatePlayer(player, txn)
 	w.WriteHeader(status)
 
 	defer txn.Rollback()
