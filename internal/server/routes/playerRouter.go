@@ -73,6 +73,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 		Level:   0,
 		Rank:    0,
 		Winrate: 0,
+		Active:  true,
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&player)

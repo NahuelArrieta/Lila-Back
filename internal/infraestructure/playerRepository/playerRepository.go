@@ -23,10 +23,13 @@ func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, 
 								name,
 								level,
 								player_rank,
-								winrate
-							FROM player
+								winrate,
+								active
+							FROM 
+								player
 							WHERE
-								player_id = ?;`)
+								player_id = ? AND
+								active = True;`)
 	defer stmt.Close()
 	if err != nil {
 		return player, http.StatusInternalServerError
@@ -37,7 +40,8 @@ func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, 
 		&player.Name,
 		&player.Level,
 		&player.Rank,
-		&player.Winrate)
+		&player.Winrate,
+		&player.Active)
 
 	if err == sql.ErrNoRows {
 		return player, http.StatusNotFound
@@ -53,8 +57,9 @@ func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
 								name,
 								level,
 								player_rank,
-								winrate)
-							VALUES (?,?,?,?);`)
+								winrate,
+								active)
+							VALUES (?,?,?,?,?);`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
@@ -65,6 +70,7 @@ func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
 		player.Level,
 		player.Rank,
 		player.Winrate,
+		player.Active,
 	)
 	if err != nil {
 		str := err.Error()
@@ -90,13 +96,15 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 								level = ?,
 								player_rank = ?,
 								winrate = ?
-							WHERE player_id = ?`)
+							WHERE 
+								player_id = ? AND
+								active = True`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
 	}
 
-	_, err = stmt.Exec(
+	res, err := stmt.Exec(
 		player.Name,
 		player.Level,
 		player.Rank,
@@ -105,6 +113,11 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 	)
 	if err != nil {
 		return http.StatusInternalServerError
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return http.StatusNotFound
 	}
 
 	return http.StatusOK
@@ -119,11 +132,16 @@ func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
 		return http.StatusInternalServerError
 	}
 
-	_, err = stmt.Exec(
+	res, err := stmt.Exec(
 		playerID,
 	)
 	if err != nil {
 		return http.StatusInternalServerError
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return http.StatusNotFound
 	}
 
 	return http.StatusOK
