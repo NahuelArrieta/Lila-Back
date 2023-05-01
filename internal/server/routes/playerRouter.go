@@ -88,6 +88,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 
 	status := pr.Handler.CreatePlayer(player, txn)
 	w.WriteHeader(status)
+	// TODO return player
 
 	defer txn.Rollback()
 	if status == http.StatusOK {
@@ -220,8 +221,8 @@ func (pr *playerRouter) Routes() http.Handler {
 	}))
 
 	r.Get("/{playerId}", pr.GetPlayer)
-	r.Post("/", pr.CreatePlayer)
-	r.Put("/{playerId}", pr.UpdatePlayer)
+	r.Post("/", pr.CreatePlayer)          // TODO consgina
+	r.Put("/{playerId}", pr.UpdatePlayer) // TODO consgina
 	r.Delete("/{playerId}", pr.DeletePlayer)
 
 	r.Put("/matchmaking", pr.DoMatchmaking)

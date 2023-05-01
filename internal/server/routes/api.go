@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"Lila-Back/internal/infraestructure/clanRepository"
 	"Lila-Back/internal/infraestructure/playerRepository"
+	"Lila-Back/pkg/Handlers/clanHandler"
 	"Lila-Back/pkg/Handlers/playerHandler"
 	"database/sql"
 	"net/http"
@@ -22,7 +24,14 @@ func New() http.Handler {
 		},
 	}
 
-	r.Mount("/player", pr.Routes()) //
+	cr := &clanRouter{
+		Handler: &clanHandler.ClanHandler{
+			Repository: &clanRepository.ClanRepository{},
+		},
+	}
+
+	r.Mount("/player", pr.Routes())
+	r.Mount("/clan", cr.Routes())
 
 	return r
 }

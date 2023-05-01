@@ -54,13 +54,8 @@ func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, 
 }
 
 func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
-	stmt, err := txn.Prepare(`INSERT INTO player (
-								name,
-								level,
-								player_rank,
-								winrate,
-								active)
-							VALUES (?,?,?,?,?);`)
+	stmt, err := txn.Prepare(`INSERT INTO player (name)
+							VALUES (?);`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
@@ -68,14 +63,11 @@ func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
 
 	res, err := stmt.Exec(
 		player.Name,
-		player.Level,
-		player.Rank,
-		player.Winrate,
-		player.Active,
 	)
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "player.name") {
+			// TODO check if name is empty or duplicate
 			return http.StatusBadRequest
 		}
 		return http.StatusInternalServerError
@@ -92,7 +84,9 @@ func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
 }
 
 func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
-	stmt, err := txn.Prepare(`UPDATE player SET
+	stmt, err := txn.Prepare(`UPDATE 
+								player 
+							SET
 								name = ?,
 								level = ?,
 								player_rank = ?,
@@ -118,6 +112,7 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
+		// TODO verify whether the user exists
 		return http.StatusNotFound
 	}
 
@@ -126,9 +121,12 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 
 func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
 
-	stmt, err := txn.Prepare(`UPDATE player SET
+	stmt, err := txn.Prepare(`UPDATE 
+								player 
+							SET
 								active = False
-							WHERE player_id = ?`)
+							WHERE 
+								player_id = ?`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
