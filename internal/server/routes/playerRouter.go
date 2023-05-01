@@ -170,11 +170,52 @@ func (pr playerRouter) DeletePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (pr playerRouter) DoMatchmaking(w http.ResponseWriter, r *http.Request) {
+	txn, err := connection.Connect()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+	var player player.Player
+
+	err = json.NewDecoder(r.Body).Decode(&player)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		// _, err = w.Write([]byte("400 Bad Request"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	players, status := pr.Handler.DoMatchmaking(player, txn)
+	w.WriteHeader(status)
+	resp, err := json.Marshal(players)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	_, err = w.Write([]byte(resp))
+	if err != nil {
+		fmt.Println("Internal Fatal Error")
+	}
+
+}
+
 func (pr *playerRouter) Routes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedOrigins: []string{"https://*", "http://*"}, //--
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	}))
 
@@ -182,6 +223,8 @@ func (pr *playerRouter) Routes() http.Handler {
 	r.Post("/", pr.CreatePlayer)
 	r.Put("/{playerId}", pr.UpdatePlayer)
 	r.Delete("/{playerId}", pr.DeletePlayer)
+
+	r.Put("/matchmaking", pr.DoMatchmaking)
 
 	return r
 }

@@ -12,6 +12,7 @@ type Repository interface {
 	CreatePlayer(player player.Player, txn *sql.Tx) int
 	UpdatePlayer(player player.Player, txn *sql.Tx) int
 	DeletePlayer(playerID int, txn *sql.Tx) int
+	DoMatchmaking(player player.Player, txn *sql.Tx) ([]player.Player, int)
 }
 
 type PlayerRepository struct{}
@@ -124,6 +125,7 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 }
 
 func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
+
 	stmt, err := txn.Prepare(`UPDATE player SET
 								active = False
 							WHERE player_id = ?`)
@@ -145,5 +147,58 @@ func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
 	}
 
 	return http.StatusOK
+
+}
+
+func (pr PlayerRepository) DoMatchmaking(playerR player.Player, txn *sql.Tx) ([]player.Player, int) {
+	stmt, err := txn.Prepare(`SELECT
+								player_id,
+								name,
+								level,
+								player_rank,
+								winrate,
+								active
+							FROM 
+								player
+							WHERE 
+								active = True
+							ORDER BY
+								ABS( ? - player_rank),
+								ABS( ? - level ),
+								ABS( ? - winrate )
+							LIMIT 15`)
+	defer stmt.Close()
+	if err != nil {
+		return nil, http.StatusInternalServerError
+	}
+
+	rows, err := stmt.Query(
+		playerR.Rank,
+		playerR.Level,
+		playerR.Winrate,
+	)
+	if err != nil {
+		return nil, http.StatusInternalServerError
+	}
+
+	var players []player.Player
+
+	for rows.Next() {
+		var player player.Player
+		err = rows.Scan(
+			&player.Id,
+			&player.Name,
+			&player.Level,
+			&player.Rank,
+			&player.Winrate,
+			&player.Active,
+		)
+		if err != nil {
+			return nil, http.StatusInternalServerError
+		}
+		players = append(players, player)
+	}
+
+	return players, http.StatusOK
 
 }
