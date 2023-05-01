@@ -180,6 +180,7 @@ func (pr PlayerRepository) DoMatchmaking(playerR player.Player, txn *sql.Tx) ([]
 	var players []player.Player
 
 	for rows.Next() {
+		// TODO not found
 		var player player.Player
 		err = rows.Scan(
 			&player.Id,

@@ -12,6 +12,7 @@ type Handler interface {
 	CreateClan(clan *clan.Clan, txn *sql.Tx) int
 	JoinClan(jr *clan.JoinRequest, txn *sql.Tx) int
 	PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int
+	GetPlayers(clanID int, txn *sql.Tx) (interface{}, int)
 }
 
 type ClanHandler struct {
@@ -67,4 +68,8 @@ func (ch ClanHandler) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx)
 	}
 
 	return ch.Repository.PutColeader(coleaderReq, txn)
+}
+
+func (ch ClanHandler) GetPlayers(clanID int, txn *sql.Tx) (interface{}, int) {
+	return ch.Repository.GetPlayers(clanID, txn)
 }

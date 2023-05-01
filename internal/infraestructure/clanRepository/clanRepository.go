@@ -2,6 +2,7 @@ package clanRepository
 
 import (
 	"Lila-Back/pkg/Domain/clan"
+	"Lila-Back/pkg/Domain/player"
 	"database/sql"
 	"net/http"
 	"strings"
@@ -13,6 +14,7 @@ type Repository interface {
 	GetClanPassword(clanID int, txn *sql.Tx) (string, int)
 	PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int
 	GetClanLeader(clanID int, txn *sql.Tx) (int, int)
+	GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, int)
 }
 
 type ClanRepository struct{}
@@ -55,7 +57,7 @@ func (cr ClanRepository) JoinClan(playerID int, clanID int, txn *sql.Tx) int {
 	stmt, err := txn.Prepare(`INSERT INTO clan_player(
 								player_id,
 								clan_id)
-							VALUES (?,?)`)
+							VALUES (?,?);`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
@@ -105,7 +107,7 @@ func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.
 							SET 
 								coleader_id = ?
 							WHERE
-								clan_id = ?`)
+								clan_id = ?;`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
@@ -156,4 +158,49 @@ func (cr ClanRepository) GetClanLeader(clanID int, txn *sql.Tx) (int, int) {
 	}
 	return LeaderId, http.StatusOK
 
+}
+
+func (cr ClanRepository) GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, int) {
+	stmt, err := txn.Prepare(`SELECT 
+								p.*
+							FROM 
+								player p NATURAL JOIN clan_player cp
+							WHERE 
+								cp.clan_id = ? AND
+								p.active = true;`)
+	defer stmt.Close()
+	if err != nil {
+		return nil, http.StatusInternalServerError
+	}
+
+	rows, err := stmt.Query(clanID)
+	if err != nil {
+		return nil, http.StatusInternalServerError
+	}
+
+	// TODO check not found
+	var players []player.Player
+	var noRows bool = true
+	for rows.Next() {
+		noRows = false
+		var player player.Player
+		err := rows.Scan(
+			&player.Id,
+			&player.Name,
+			&player.Level,
+			&player.Rank,
+			&player.Winrate,
+			&player.Active,
+		)
+		if err != nil {
+			return nil, http.StatusInternalServerError
+		}
+		players = append(players, player)
+
+	}
+	if noRows {
+		return nil, http.StatusNotFound
+	}
+
+	return players, http.StatusOK
 }

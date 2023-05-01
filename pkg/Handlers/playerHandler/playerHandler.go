@@ -44,5 +44,6 @@ func (ph PlayerHandler) DoMatchmaking(player player.Player, txn *sql.Tx) (interf
 	if status != http.StatusOK {
 		return nil, status
 	}
+	// TODO retrun ch.R.DOMATCH
 	return players, status
 }
