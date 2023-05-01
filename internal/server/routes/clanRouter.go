@@ -106,7 +106,52 @@ func (cr clanRouter) JoinClan(w http.ResponseWriter, r *http.Request) {
 	if status == http.StatusOK {
 		txn.Commit()
 	}
+}
 
+func (cr clanRouter) PutColeader(w http.ResponseWriter, r *http.Request) {
+	txn, err := connection.Connect()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	var coleaderReq clan.ColeaderRequest
+	err = json.NewDecoder(r.Body).Decode(&coleaderReq)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		// _, err = w.Write([]byte("400 Bad Request"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	status := cr.Handler.PutColeader(coleaderReq, txn)
+
+	resp, err := json.Marshal(coleaderReq)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	w.WriteHeader(status)
+	_, err = w.Write([]byte(resp))
+	if err != nil {
+		fmt.Println("Internal Fatal Error")
+	}
+
+	defer txn.Rollback()
+	if status == http.StatusOK {
+		txn.Commit()
+	}
 }
 
 func (cr clanRouter) Routes() http.Handler {
@@ -119,6 +164,7 @@ func (cr clanRouter) Routes() http.Handler {
 
 	r.Post("/", cr.CreateClan)
 	r.Put("/join", cr.JoinClan)
+	r.Put("/co-leader", cr.PutColeader)
 
 	return r
 

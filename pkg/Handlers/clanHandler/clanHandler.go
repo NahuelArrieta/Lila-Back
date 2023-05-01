@@ -11,6 +11,7 @@ import (
 type Handler interface {
 	CreateClan(clan *clan.Clan, txn *sql.Tx) int
 	JoinClan(jr *clan.JoinRequest, txn *sql.Tx) int
+	PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int
 }
 
 type ClanHandler struct {
@@ -29,7 +30,9 @@ func (ch ClanHandler) CreateClan(clan *clan.Clan, txn *sql.Tx) int {
 		return status
 	}
 
-	return ch.Repository.JoinClan(clan.LeaderId, clan.Id, txn)
+	status = ch.Repository.JoinClan(clan.LeaderId, clan.Id, txn)
+
+	return status
 }
 
 func (ch ClanHandler) JoinClan(jr *clan.JoinRequest, txn *sql.Tx) int {
@@ -45,4 +48,23 @@ func (ch ClanHandler) JoinClan(jr *clan.JoinRequest, txn *sql.Tx) int {
 	jr.Password = hashedPassword
 
 	return ch.Repository.JoinClan(jr.Player_Id, jr.Clan_Id, txn)
+}
+
+func (ch ClanHandler) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int {
+	leaderId, status := ch.Repository.GetClanLeader(coleaderReq.ClanId, txn)
+	if status != http.StatusOK {
+		return status
+	}
+	if leaderId != coleaderReq.LeaderId {
+		return http.StatusForbidden
+	}
+
+	// Join the coleader to the clan in case is is not in.
+	status = ch.Repository.JoinClan(coleaderReq.ColeaderId, coleaderReq.ClanId, txn)
+	if status == http.StatusBadRequest || status == http.StatusOK {
+		// BadRequest is allowed in case the player is already in the clan
+		return http.StatusOK
+	}
+
+	return ch.Repository.PutColeader(coleaderReq, txn)
 }

@@ -9,8 +9,10 @@ import (
 
 type Repository interface {
 	CreateClan(clan *clan.Clan, txn *sql.Tx) int
-	JoinClan(playerID int, clanID int, txn *sql.Tx) int
+	JoinClan(playerID, clanID int, txn *sql.Tx) int
 	GetClanPassword(clanID int, txn *sql.Tx) (string, int)
+	PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int
+	GetClanLeader(clanID int, txn *sql.Tx) (int, int)
 }
 
 type ClanRepository struct{}
@@ -94,5 +96,64 @@ func (cr ClanRepository) GetClanPassword(clanID int, txn *sql.Tx) (string, int) 
 		return "", http.StatusInternalServerError
 	}
 	return password, http.StatusOK
+
+}
+
+func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int {
+	stmt, err := txn.Prepare(`UPDATE 
+								clan
+							SET 
+								coleader_id = ?
+							WHERE
+								clan_id = ?`)
+	defer stmt.Close()
+	if err != nil {
+		return http.StatusInternalServerError
+	}
+
+	res, err := stmt.Exec(coleaderReq.ColeaderId, coleaderReq.ClanId)
+	if err != nil {
+		str := err.Error()
+		// TODO change fk_constraint
+		if strings.Contains(str, "foreign key") {
+			return http.StatusNotFound
+		}
+		return http.StatusInternalServerError
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return http.StatusInternalServerError
+	}
+	if int(rows) == 0 {
+		// TODO clan exists?
+		return http.StatusNotModified
+	}
+
+	return http.StatusOK
+}
+
+func (cr ClanRepository) GetClanLeader(clanID int, txn *sql.Tx) (int, int) {
+	stmt, err := txn.Prepare(`SELECT 
+								leader_id
+							FROM 
+								clan
+							WHERE 
+								clan_id = ?;`)
+	defer stmt.Close()
+	if err != nil {
+		return -1, http.StatusInternalServerError
+	}
+
+	var LeaderId int
+	err = stmt.QueryRow(clanID).Scan(&LeaderId)
+
+	if err == sql.ErrNoRows {
+		return -1, http.StatusNotFound
+	}
+	if err != nil {
+		return -1, http.StatusInternalServerError
+	}
+	return LeaderId, http.StatusOK
 
 }
