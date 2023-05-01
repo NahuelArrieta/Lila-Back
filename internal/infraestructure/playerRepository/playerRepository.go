@@ -61,9 +61,7 @@ func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
 		return http.StatusInternalServerError
 	}
 
-	res, err := stmt.Exec(
-		player.Name,
-	)
+	res, err := stmt.Exec(player.Name)
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "player.name") {
@@ -93,7 +91,7 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 								winrate = ?
 							WHERE 
 								player_id = ? AND
-								active = True`)
+								active = True;`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
@@ -126,7 +124,7 @@ func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
 							SET
 								active = False
 							WHERE 
-								player_id = ?`)
+								player_id = ?;`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError
@@ -164,7 +162,7 @@ func (pr PlayerRepository) DoMatchmaking(playerR player.Player, txn *sql.Tx) ([]
 								ABS( ? - player_rank),
 								ABS( ? - level ),
 								ABS( ? - winrate )
-							LIMIT 15`)
+							LIMIT 15;`)
 	defer stmt.Close()
 	if err != nil {
 		return nil, http.StatusInternalServerError

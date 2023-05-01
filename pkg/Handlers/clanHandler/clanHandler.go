@@ -10,6 +10,7 @@ import (
 
 type Handler interface {
 	CreateClan(clan *clan.Clan, txn *sql.Tx) int
+	JoinClan(jr *clan.JoinRequest, txn *sql.Tx) int
 }
 
 type ClanHandler struct {
@@ -28,6 +29,20 @@ func (ch ClanHandler) CreateClan(clan *clan.Clan, txn *sql.Tx) int {
 		return status
 	}
 
-	// TODO join leader to clan
-	return status
+	return ch.Repository.JoinClan(clan.LeaderId, clan.Id, txn)
+}
+
+func (ch ClanHandler) JoinClan(jr *clan.JoinRequest, txn *sql.Tx) int {
+
+	hashedPassword, status := ch.Repository.GetClanPassword(jr.Clan_Id, txn)
+	if status != http.StatusOK {
+		return status
+	}
+
+	if !hashPass.CheckPassword(jr.Password, hashedPassword) {
+		return http.StatusForbidden
+	}
+	jr.Password = hashedPassword
+
+	return ch.Repository.JoinClan(jr.Player_Id, jr.Clan_Id, txn)
 }

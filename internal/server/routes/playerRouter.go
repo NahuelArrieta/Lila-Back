@@ -98,6 +98,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
+	// TODO return player
 	txn, err := connection.Connect()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
