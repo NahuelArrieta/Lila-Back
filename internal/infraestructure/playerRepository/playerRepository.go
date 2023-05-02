@@ -64,8 +64,7 @@ func (pr PlayerRepository) CreatePlayer(player *player.Player, txn *sql.Tx) int 
 	res, err := stmt.Exec(player.Name)
 	if err != nil {
 		str := err.Error()
-		if strings.Contains(str, "player.name") {
-			// TODO check if name is empty or duplicate
+		if strings.Contains(str, "unique_name") {
 			return http.StatusBadRequest
 		}
 		return http.StatusInternalServerError
@@ -105,7 +104,19 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 		player.Id,
 	)
 	if err != nil {
-		// TODO constrraint
+		str := err.Error()
+		if strings.Contains(str, "unique_name") {
+			return http.StatusBadRequest
+		}
+		if strings.Contains(str, "level_check") {
+			return http.StatusBadRequest
+		}
+		if strings.Contains(str, "rank_check") {
+			return http.StatusBadRequest
+		}
+		if strings.Contains(str, "winrate_check") {
+			return http.StatusBadRequest
+		}
 		return http.StatusInternalServerError
 	}
 
@@ -124,7 +135,8 @@ func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
 							SET
 								active = False
 							WHERE 
-								player_id = ?;`)
+								player_id = ? AND
+								active = true;`)
 	defer stmt.Close()
 	if err != nil {
 		return http.StatusInternalServerError

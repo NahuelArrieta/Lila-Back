@@ -70,7 +70,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	var player player.Player
 
 	err = json.NewDecoder(r.Body).Decode(&player)
-	if err != nil {
+	if err != nil || player.Name == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		// _, err = w.Write([]byte("400 Bad Request"))
 		if err != nil {
@@ -79,10 +79,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	player.Level = 0
-	player.Rank = 0
-	player.Winrate = 0
-	player.Active = true
+	player.SetDefaultValues()
 
 	status := pr.Handler.CreatePlayer(&player, txn)
 
@@ -124,7 +121,9 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 	var player player.Player
 
 	err = json.NewDecoder(r.Body).Decode(&player)
-	if err != nil {
+	playerID, err2 := strconv.Atoi(chi.URLParam(r, "playerId"))
+
+	if err != nil || err2 != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		// _, err = w.Write([]byte("400 Bad Request"))
 		if err != nil {
@@ -133,16 +132,8 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	playerID, err := strconv.Atoi(chi.URLParam(r, "playerId"))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		// _, err = w.Write([]byte("400 Bad Request"))
-		if err != nil {
-			fmt.Println("Internal Fatal Error")
-		}
-		return
-	}
 	player.Id = playerID
+	player.Active = true
 
 	status := pr.Handler.UpdatePlayer(player, txn)
 	w.WriteHeader(status)

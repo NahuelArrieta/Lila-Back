@@ -37,9 +37,11 @@ func (cr ClanRepository) CreateClan(clan *clan.Clan, txn *sql.Tx) int {
 	)
 	if err != nil {
 		str := err.Error()
-		if strings.Contains(str, "clan.name") {
-			// TODO check if name is empty or duplicate
+		if strings.Contains(str, "unique_name") {
 			return http.StatusBadRequest
+		}
+		if strings.Contains(str, "leader_fk") {
+			return http.StatusNotFound
 		}
 		return http.StatusInternalServerError
 	}
@@ -68,6 +70,12 @@ func (cr ClanRepository) JoinClan(playerID int, clanID int, txn *sql.Tx) int {
 		str := err.Error()
 		if strings.Contains(str, "Duplicate") {
 			return http.StatusBadRequest
+		}
+		if strings.Contains(str, "player_fk") {
+			return http.StatusNotFound
+		}
+		if strings.Contains(str, "clan_fk") {
+			return http.StatusNotFound
 		}
 		return http.StatusInternalServerError
 	}
@@ -116,8 +124,7 @@ func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.
 	res, err := stmt.Exec(coleaderReq.ColeaderId, coleaderReq.ClanId)
 	if err != nil {
 		str := err.Error()
-		// TODO change fk_constraint
-		if strings.Contains(str, "foreign key") {
+		if strings.Contains(str, "coleader_fk") {
 			return http.StatusNotFound
 		}
 		return http.StatusInternalServerError
