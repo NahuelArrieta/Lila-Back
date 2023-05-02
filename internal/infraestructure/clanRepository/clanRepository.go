@@ -121,21 +121,13 @@ func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.
 		return http.StatusInternalServerError
 	}
 
-	res, err := stmt.Exec(coleaderReq.ColeaderId, coleaderReq.ClanId)
+	_, err = stmt.Exec(coleaderReq.ColeaderId, coleaderReq.ClanId)
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "coleader_fk") {
 			return http.StatusNotFound
 		}
 		return http.StatusInternalServerError
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return http.StatusInternalServerError
-	}
-	if int(rows) == 0 {
-		return http.StatusNotModified
 	}
 
 	return http.StatusOK

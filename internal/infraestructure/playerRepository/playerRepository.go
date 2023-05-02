@@ -96,7 +96,7 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 		return http.StatusInternalServerError
 	}
 
-	res, err := stmt.Exec(
+	_, err = stmt.Exec(
 		player.Name,
 		player.Level,
 		player.Rank,
@@ -118,11 +118,6 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 			return http.StatusBadRequest
 		}
 		return http.StatusInternalServerError
-	}
-
-	rows, _ := res.RowsAffected()
-	if rows == 0 {
-		return http.StatusNotModified
 	}
 
 	return http.StatusOK

@@ -28,9 +28,9 @@ func (cr clanRouter) CreateClan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var clan clan.Clan
+	clan := clan.Clan{LeaderId: -1}
 	err = json.NewDecoder(r.Body).Decode(&clan)
-	if err != nil {
+	if err != nil || clan.Name == "" || clan.HashedPassword == "" || clan.LeaderId == -1 {
 		w.WriteHeader(http.StatusBadRequest)
 		// _, err = w.Write([]byte("400 Bad Request"))
 		if err != nil {
@@ -74,9 +74,9 @@ func (cr clanRouter) JoinClan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var jr clan.JoinRequest
+	jr := clan.JoinRequest{Clan_Id: -1, Player_Id: -1}
 	err = json.NewDecoder(r.Body).Decode(&jr)
-	if err != nil {
+	if err != nil || jr.Clan_Id == -1 || jr.Player_Id == -1 {
 		w.WriteHeader(http.StatusBadRequest)
 		// _, err = w.Write([]byte("400 Bad Request"))
 		if err != nil {
@@ -120,9 +120,9 @@ func (cr clanRouter) PutColeader(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var coleaderReq clan.ColeaderRequest
+	coleaderReq := clan.ColeaderRequest{ClanId: -1, LeaderId: -1, ColeaderId: -1}
 	err = json.NewDecoder(r.Body).Decode(&coleaderReq)
-	if err != nil {
+	if err != nil || coleaderReq.ClanId == -1 || coleaderReq.LeaderId == -1 || coleaderReq.ColeaderId == -1 {
 		w.WriteHeader(http.StatusBadRequest)
 		// _, err = w.Write([]byte("400 Bad Request"))
 		if err != nil {

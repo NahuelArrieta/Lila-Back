@@ -62,9 +62,9 @@ func (ch ClanHandler) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx)
 
 	// Join the coleader to the clan in case is is not in.
 	status = ch.Repository.JoinClan(coleaderReq.ColeaderId, coleaderReq.ClanId, txn)
-	if status == http.StatusBadRequest || status == http.StatusOK {
+	if status != http.StatusBadRequest && status != http.StatusOK {
 		// BadRequest is allowed in case the player is already in the clan
-		return http.StatusOK
+		return status
 	}
 
 	return ch.Repository.PutColeader(coleaderReq, txn)
