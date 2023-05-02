@@ -9,7 +9,7 @@ type Player struct {
 	Active  bool    `json:"active"`
 }
 
-func (player Player) SetDefaultValues() {
+func (player *Player) SetDefaultValues() {
 	player.Level = 0
 	player.Rank = 0
 	player.Winrate = 0

@@ -12,7 +12,7 @@ type Repository interface {
 	CreatePlayer(player *player.Player, txn *sql.Tx) int
 	UpdatePlayer(player player.Player, txn *sql.Tx) int
 	DeletePlayer(playerID int, txn *sql.Tx) int
-	DoMatchmaking(player player.Player, txn *sql.Tx) ([]player.Player, int)
+	DoMatchmaking(player player.PlayerStats, txn *sql.Tx) ([]player.Player, int)
 }
 
 type PlayerRepository struct{}
@@ -158,7 +158,7 @@ func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
 
 }
 
-func (pr PlayerRepository) DoMatchmaking(playerR player.Player, txn *sql.Tx) ([]player.Player, int) {
+func (pr PlayerRepository) DoMatchmaking(playerStats player.PlayerStats, txn *sql.Tx) ([]player.Player, int) {
 	stmt, err := txn.Prepare(`SELECT
 								player_id,
 								name,
@@ -181,9 +181,9 @@ func (pr PlayerRepository) DoMatchmaking(playerR player.Player, txn *sql.Tx) ([]
 	}
 
 	rows, err := stmt.Query(
-		playerR.Rank,
-		playerR.Level,
-		playerR.Winrate,
+		playerStats.Rank,
+		playerStats.Level,
+		playerStats.Winrate,
 	)
 	if err != nil {
 		return nil, http.StatusInternalServerError

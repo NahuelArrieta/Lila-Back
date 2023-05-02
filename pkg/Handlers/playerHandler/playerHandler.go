@@ -16,7 +16,7 @@ type Handler interface {
 	CreatePlayer(player *player.Player, txn *sql.Tx) int
 	UpdatePlayer(player player.Player, txn *sql.Tx) int
 	DeletePlayer(playerID int, txn *sql.Tx) int
-	DoMatchmaking(player player.Player, txn *sql.Tx) (interface{}, int)
+	DoMatchmaking(player player.PlayerStats, txn *sql.Tx) (interface{}, int)
 }
 
 func (ph PlayerHandler) GetPlayer(playerID int, txn *sql.Tx) (interface{}, int) {
@@ -44,6 +44,6 @@ func (ph PlayerHandler) DeletePlayer(playerID int, txn *sql.Tx) int {
 	return ph.Repository.DeletePlayer(playerID, txn)
 }
 
-func (ph PlayerHandler) DoMatchmaking(player player.Player, txn *sql.Tx) (interface{}, int) {
-	return ph.Repository.DoMatchmaking(player, txn)
+func (ph PlayerHandler) DoMatchmaking(playerStats player.PlayerStats, txn *sql.Tx) (interface{}, int) {
+	return ph.Repository.DoMatchmaking(playerStats, txn)
 }

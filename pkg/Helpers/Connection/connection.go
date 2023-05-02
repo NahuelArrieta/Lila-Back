@@ -10,7 +10,7 @@ var db *sql.DB
 
 func init() {
 	// TODO personalizar
-	url := "root:root@tcp(localhost:3306)/video_game"
+	url := "root:root@tcp(localhost:3306)/api_videogame"
 	var err error
 	db, err = sql.Open("mysql", url)
 	if err != nil {

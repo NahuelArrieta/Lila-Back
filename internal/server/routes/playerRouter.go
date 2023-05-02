@@ -123,7 +123,7 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&player)
 	playerID, err2 := strconv.Atoi(chi.URLParam(r, "playerId"))
 
-	if err != nil || err2 != nil {
+	if err != nil || err2 != nil || player.Name == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		// _, err = w.Write([]byte("400 Bad Request"))
 		if err != nil {
@@ -200,10 +200,10 @@ func (pr playerRouter) DoMatchmaking(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	var player player.Player
+	playerStats := player.PlayerStats{Level: -1, Rank: -1, Winrate: -1}
 
-	err = json.NewDecoder(r.Body).Decode(&player)
-	if err != nil {
+	err = json.NewDecoder(r.Body).Decode(&playerStats)
+	if err != nil || playerStats.Level == -1 || playerStats.Rank == -1 || playerStats.Winrate == -1 {
 		w.WriteHeader(http.StatusBadRequest)
 		// _, err = w.Write([]byte("400 Bad Request"))
 		if err != nil {
@@ -212,7 +212,7 @@ func (pr playerRouter) DoMatchmaking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	players, status := pr.Handler.DoMatchmaking(player, txn)
+	players, status := pr.Handler.DoMatchmaking(playerStats, txn)
 	w.WriteHeader(status)
 	resp, err := json.Marshal(players)
 	if err != nil {
