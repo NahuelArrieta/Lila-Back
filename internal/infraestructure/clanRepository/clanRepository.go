@@ -128,7 +128,6 @@ func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.
 		return http.StatusInternalServerError
 	}
 	if int(rows) == 0 {
-		// TODO clan exists?
 		return http.StatusNotModified
 	}
 
@@ -178,7 +177,6 @@ func (cr ClanRepository) GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, i
 		return nil, http.StatusInternalServerError
 	}
 
-	// TODO check not found
 	var players []player.Player
 	var noRows bool = true
 	for rows.Next() {

@@ -13,7 +13,7 @@ type PlayerHandler struct {
 
 type Handler interface {
 	GetPlayer(playerID int, txn *sql.Tx) (interface{}, int)
-	CreatePlayer(player player.Player, txn *sql.Tx) int
+	CreatePlayer(player *player.Player, txn *sql.Tx) int
 	UpdatePlayer(player player.Player, txn *sql.Tx) int
 	DeletePlayer(playerID int, txn *sql.Tx) int
 	DoMatchmaking(player player.Player, txn *sql.Tx) (interface{}, int)
@@ -27,11 +27,16 @@ func (ph PlayerHandler) GetPlayer(playerID int, txn *sql.Tx) (interface{}, int) 
 	return player, status
 }
 
-func (ph PlayerHandler) CreatePlayer(player player.Player, txn *sql.Tx) int {
+func (ph PlayerHandler) CreatePlayer(player *player.Player, txn *sql.Tx) int {
 	return ph.Repository.CreatePlayer(player, txn)
 }
 
 func (ph PlayerHandler) UpdatePlayer(player player.Player, txn *sql.Tx) int {
+	_, status := ph.Repository.GetPlayer(player.Id, txn)
+	// Verify wether the player exists
+	if status == http.StatusNotFound {
+		return status
+	}
 	return ph.Repository.UpdatePlayer(player, txn)
 }
 
@@ -40,10 +45,5 @@ func (ph PlayerHandler) DeletePlayer(playerID int, txn *sql.Tx) int {
 }
 
 func (ph PlayerHandler) DoMatchmaking(player player.Player, txn *sql.Tx) (interface{}, int) {
-	players, status := ph.Repository.DoMatchmaking(player, txn)
-	if status != http.StatusOK {
-		return nil, status
-	}
-	// TODO retrun ch.R.DOMATCH
-	return players, status
+	return ph.Repository.DoMatchmaking(player, txn)
 }

@@ -17,8 +17,6 @@ type playerRouter struct {
 	Handler playerHandler.Handler
 }
 
-// var qlCon *sql.DB  --- TODO
-
 func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	txn, err := connection.Connect()
 	if err != nil {
@@ -40,7 +38,7 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	player, status := pr.Handler.GetPlayer(playerID, txn) //TODO recuperar status
+	player, status := pr.Handler.GetPlayer(playerID, txn)
 	w.WriteHeader(status)
 	resp, err := json.Marshal(player)
 	if err != nil {
@@ -86,9 +84,24 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	player.Winrate = 0
 	player.Active = true
 
-	status := pr.Handler.CreatePlayer(player, txn)
+	status := pr.Handler.CreatePlayer(&player, txn)
+
 	w.WriteHeader(status)
-	// TODO return player
+
+	resp, err := json.Marshal(player)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	_, err = w.Write([]byte(resp))
+	if err != nil {
+		fmt.Println("Internal Fatal Error")
+	}
 
 	defer txn.Rollback()
 	if status == http.StatusOK {
@@ -98,7 +111,6 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
-	// TODO return player
 	txn, err := connection.Connect()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -132,8 +144,23 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 	player.Id = playerID
 
-	status := pr.Handler.UpdatePlayer(player, txn) // TODO cambia
+	status := pr.Handler.UpdatePlayer(player, txn)
 	w.WriteHeader(status)
+
+	resp, err := json.Marshal(player)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	_, err = w.Write([]byte(resp))
+	if err != nil {
+		fmt.Println("Internal Fatal Error")
+	}
 
 	defer txn.Rollback()
 	if status == http.StatusOK {
@@ -163,7 +190,7 @@ func (pr playerRouter) DeletePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := pr.Handler.DeletePlayer(playerID, txn) // TODO cambia
+	status := pr.Handler.DeletePlayer(playerID, txn)
 	w.WriteHeader(status)
 
 	defer txn.Rollback()
@@ -222,8 +249,8 @@ func (pr *playerRouter) Routes() http.Handler {
 	}))
 
 	r.Get("/{playerId}", pr.GetPlayer)
-	r.Post("/", pr.CreatePlayer)          // TODO consgina
-	r.Put("/{playerId}", pr.UpdatePlayer) // TODO consgina
+	r.Post("/", pr.CreatePlayer)
+	r.Put("/{playerId}", pr.UpdatePlayer)
 	r.Delete("/{playerId}", pr.DeletePlayer)
 
 	r.Put("/matchmaking", pr.DoMatchmaking)

@@ -9,7 +9,7 @@ import (
 
 type Repository interface {
 	GetPlayer(playerID int, txn *sql.Tx) (player.Player, int)
-	CreatePlayer(player player.Player, txn *sql.Tx) int
+	CreatePlayer(player *player.Player, txn *sql.Tx) int
 	UpdatePlayer(player player.Player, txn *sql.Tx) int
 	DeletePlayer(playerID int, txn *sql.Tx) int
 	DoMatchmaking(player player.Player, txn *sql.Tx) ([]player.Player, int)
@@ -53,7 +53,7 @@ func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, 
 	return player, http.StatusOK
 }
 
-func (pr PlayerRepository) CreatePlayer(player player.Player, txn *sql.Tx) int {
+func (pr PlayerRepository) CreatePlayer(player *player.Player, txn *sql.Tx) int {
 	stmt, err := txn.Prepare(`INSERT INTO player (name)
 							VALUES (?);`)
 	defer stmt.Close()
@@ -105,13 +105,13 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 		player.Id,
 	)
 	if err != nil {
+		// TODO constrraint
 		return http.StatusInternalServerError
 	}
 
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
-		// TODO verify whether the user exists
-		return http.StatusNotFound
+		return http.StatusNotModified
 	}
 
 	return http.StatusOK
@@ -178,9 +178,9 @@ func (pr PlayerRepository) DoMatchmaking(playerR player.Player, txn *sql.Tx) ([]
 	}
 
 	var players []player.Player
-
+	var noRows bool = true
 	for rows.Next() {
-		// TODO not found
+		noRows = false
 		var player player.Player
 		err = rows.Scan(
 			&player.Id,
@@ -194,6 +194,10 @@ func (pr PlayerRepository) DoMatchmaking(playerR player.Player, txn *sql.Tx) ([]
 			return nil, http.StatusInternalServerError
 		}
 		players = append(players, player)
+	}
+
+	if noRows {
+		return nil, http.StatusNotFound
 	}
 
 	return players, http.StatusOK
