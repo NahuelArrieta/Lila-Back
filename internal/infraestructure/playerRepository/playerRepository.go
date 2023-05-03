@@ -2,22 +2,23 @@ package playerRepository
 
 import (
 	player "Lila-Back/pkg/Domain/player"
+	"Lila-Back/pkg/Domain/response"
 	"database/sql"
 	"net/http"
 	"strings"
 )
 
 type Repository interface {
-	GetPlayer(playerID int, txn *sql.Tx) (player.Player, int)
-	CreatePlayer(player *player.Player, txn *sql.Tx) int
-	UpdatePlayer(player player.Player, txn *sql.Tx) int
-	DeletePlayer(playerID int, txn *sql.Tx) int
-	DoMatchmaking(player player.PlayerStats, txn *sql.Tx) ([]player.Player, int)
+	GetPlayer(playerID int, txn *sql.Tx) (player.Player, response.Response)
+	CreatePlayer(player *player.Player, txn *sql.Tx) response.Response
+	UpdatePlayer(player player.Player, txn *sql.Tx) response.Response
+	DeletePlayer(playerID int, txn *sql.Tx) response.Response
+	DoMatchmaking(player player.PlayerStats, txn *sql.Tx) ([]player.Player, response.Response)
 }
 
 type PlayerRepository struct{}
 
-func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, int) {
+func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, response.Response) {
 	var player player.Player
 	stmt, err := txn.Prepare(`SELECT
 								player_id,
@@ -33,7 +34,7 @@ func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, 
 								active = True;`)
 	defer stmt.Close()
 	if err != nil {
-		return player, http.StatusInternalServerError
+		return player, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	err = stmt.QueryRow(playerID).Scan(
@@ -45,42 +46,42 @@ func (pr PlayerRepository) GetPlayer(playerID int, txn *sql.Tx) (player.Player, 
 		&player.Active)
 
 	if err == sql.ErrNoRows {
-		return player, http.StatusNotFound
+		return player, response.Response{Status: http.StatusNotFound, Message: "Player Not Found"}
 	}
 	if err != nil {
-		return player, http.StatusInternalServerError
+		return player, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
-	return player, http.StatusOK
+	return player, response.Response{Status: http.StatusOK, Message: "Ok"}
 }
 
-func (pr PlayerRepository) CreatePlayer(player *player.Player, txn *sql.Tx) int {
+func (pr PlayerRepository) CreatePlayer(player *player.Player, txn *sql.Tx) response.Response {
 	stmt, err := txn.Prepare(`INSERT INTO player (name)
 							VALUES (?);`)
 	defer stmt.Close()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	res, err := stmt.Exec(player.Name)
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "unique_name") {
-			return http.StatusBadRequest
+			return response.Response{Status: http.StatusBadRequest, Message: "Name Already Used"}
 		}
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 	player.Id = int(id)
 
-	return http.StatusOK
+	return response.Response{Status: http.StatusOK, Message: "Player Created"}
 
 }
 
-func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
+func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) response.Response {
 	stmt, err := txn.Prepare(`UPDATE 
 								player 
 							SET
@@ -93,7 +94,7 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 								active = True;`)
 	defer stmt.Close()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	_, err = stmt.Exec(
@@ -106,24 +107,24 @@ func (pr PlayerRepository) UpdatePlayer(player player.Player, txn *sql.Tx) int {
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "unique_name") {
-			return http.StatusBadRequest
+			return response.Response{Status: http.StatusBadRequest, Message: "Name Already Used"}
 		}
 		if strings.Contains(str, "level_check") {
-			return http.StatusBadRequest
+			return response.Response{Status: http.StatusBadRequest, Message: "Level Can't be less than 0"}
 		}
 		if strings.Contains(str, "rank_check") {
-			return http.StatusBadRequest
+			return response.Response{Status: http.StatusBadRequest, Message: "Rank Can't be less than 0"}
 		}
 		if strings.Contains(str, "winrate_check") {
-			return http.StatusBadRequest
+			return response.Response{Status: http.StatusBadRequest, Message: "Winrate Must be between 0 and 100"}
 		}
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
-	return http.StatusOK
+	return response.Response{Status: http.StatusOK, Message: "Player Updated"}
 }
 
-func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
+func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) response.Response {
 
 	stmt, err := txn.Prepare(`UPDATE 
 								player 
@@ -134,26 +135,26 @@ func (pr PlayerRepository) DeletePlayer(playerID int, txn *sql.Tx) int {
 								active = true;`)
 	defer stmt.Close()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	res, err := stmt.Exec(
 		playerID,
 	)
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
-		return http.StatusNotFound
+		return response.Response{Status: http.StatusNotFound, Message: "Player Not Found"}
 	}
 
-	return http.StatusOK
+	return response.Response{Status: http.StatusOK, Message: "Player Deleted"}
 
 }
 
-func (pr PlayerRepository) DoMatchmaking(playerStats player.PlayerStats, txn *sql.Tx) ([]player.Player, int) {
+func (pr PlayerRepository) DoMatchmaking(playerStats player.PlayerStats, txn *sql.Tx) ([]player.Player, response.Response) {
 	stmt, err := txn.Prepare(`SELECT
 								player_id,
 								name,
@@ -172,7 +173,7 @@ func (pr PlayerRepository) DoMatchmaking(playerStats player.PlayerStats, txn *sq
 							LIMIT 15;`)
 	defer stmt.Close()
 	if err != nil {
-		return nil, http.StatusInternalServerError
+		return nil, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	rows, err := stmt.Query(
@@ -181,13 +182,11 @@ func (pr PlayerRepository) DoMatchmaking(playerStats player.PlayerStats, txn *sq
 		playerStats.Winrate,
 	)
 	if err != nil {
-		return nil, http.StatusInternalServerError
+		return nil, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	var players []player.Player
-	var noRows bool = true
 	for rows.Next() {
-		noRows = false
 		var player player.Player
 		err = rows.Scan(
 			&player.Id,
@@ -198,15 +197,11 @@ func (pr PlayerRepository) DoMatchmaking(playerStats player.PlayerStats, txn *sq
 			&player.Active,
 		)
 		if err != nil {
-			return nil, http.StatusInternalServerError
+			return nil, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 		}
 		players = append(players, player)
 	}
 
-	if noRows {
-		return nil, http.StatusNotFound
-	}
-
-	return players, http.StatusOK
+	return players, response.Response{Status: http.StatusOK, Message: "OK"}
 
 }

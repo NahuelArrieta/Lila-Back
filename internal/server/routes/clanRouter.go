@@ -39,7 +39,7 @@ func (cr clanRouter) CreateClan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := cr.Handler.CreateClan(&clan, txn)
+	result := cr.Handler.CreateClan(&clan, txn)
 
 	resp, err := json.Marshal(clan)
 	if err != nil {
@@ -51,14 +51,14 @@ func (cr clanRouter) CreateClan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(status)
+	w.WriteHeader(result.Status)
 	_, err = w.Write([]byte(resp))
 	if err != nil {
 		fmt.Println("Internal Fatal Error")
 	}
 
 	defer txn.Rollback()
-	if status == http.StatusOK {
+	if result.Status == http.StatusOK {
 		txn.Commit()
 	}
 }
@@ -85,7 +85,7 @@ func (cr clanRouter) JoinClan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := cr.Handler.JoinClan(&jr, txn)
+	result := cr.Handler.JoinClan(&jr, txn)
 
 	resp, err := json.Marshal(jr)
 	if err != nil {
@@ -97,14 +97,14 @@ func (cr clanRouter) JoinClan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(status)
+	w.WriteHeader(result.Status)
 	_, err = w.Write([]byte(resp))
 	if err != nil {
 		fmt.Println("Internal Fatal Error")
 	}
 
 	defer txn.Rollback()
-	if status == http.StatusOK {
+	if result.Status == http.StatusOK {
 		txn.Commit()
 	}
 }
@@ -131,7 +131,7 @@ func (cr clanRouter) PutColeader(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := cr.Handler.PutColeader(coleaderReq, txn)
+	result := cr.Handler.PutColeader(coleaderReq, txn)
 
 	resp, err := json.Marshal(coleaderReq)
 	if err != nil {
@@ -143,14 +143,14 @@ func (cr clanRouter) PutColeader(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(status)
+	w.WriteHeader(result.Status)
 	_, err = w.Write([]byte(resp))
 	if err != nil {
 		fmt.Println("Internal Fatal Error")
 	}
 
 	defer txn.Rollback()
-	if status == http.StatusOK {
+	if result.Status == http.StatusOK {
 		txn.Commit()
 	}
 }
@@ -176,8 +176,8 @@ func (cr clanRouter) GetPlayers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	players, status := cr.Handler.GetPlayers(clanID, txn)
-	w.WriteHeader(status)
+	players, result := cr.Handler.GetPlayers(clanID, txn)
+	w.WriteHeader(result.Status)
 	resp, err := json.Marshal(players)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

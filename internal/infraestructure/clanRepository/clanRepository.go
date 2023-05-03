@@ -3,23 +3,24 @@ package clanRepository
 import (
 	"Lila-Back/pkg/Domain/clan"
 	"Lila-Back/pkg/Domain/player"
+	"Lila-Back/pkg/Domain/response"
 	"database/sql"
 	"net/http"
 	"strings"
 )
 
 type Repository interface {
-	CreateClan(clan *clan.Clan, txn *sql.Tx) int
-	JoinClan(playerID, clanID int, txn *sql.Tx) int
-	GetClanPassword(clanID int, txn *sql.Tx) (string, int)
-	PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int
-	GetClanLeader(clanID int, txn *sql.Tx) (int, int)
-	GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, int)
+	CreateClan(clan *clan.Clan, txn *sql.Tx) response.Response
+	JoinClan(playerID, clanID int, txn *sql.Tx) response.Response
+	GetClanPassword(clanID int, txn *sql.Tx) (string, response.Response)
+	PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) response.Response
+	GetClanLeader(clanID int, txn *sql.Tx) (int, response.Response)
+	GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, response.Response)
 }
 
 type ClanRepository struct{}
 
-func (cr ClanRepository) CreateClan(clan *clan.Clan, txn *sql.Tx) int {
+func (cr ClanRepository) CreateClan(clan *clan.Clan, txn *sql.Tx) response.Response {
 	stmt, err := txn.Prepare(`INSERT INTO clan (
 								name,
 								hashed_password,
@@ -27,7 +28,7 @@ func (cr ClanRepository) CreateClan(clan *clan.Clan, txn *sql.Tx) int {
 							VALUES (?,?,?);`)
 	defer stmt.Close()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	res, err := stmt.Exec(
@@ -38,53 +39,53 @@ func (cr ClanRepository) CreateClan(clan *clan.Clan, txn *sql.Tx) int {
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "unique_name") {
-			return http.StatusBadRequest
+			return response.Response{Status: http.StatusBadRequest, Message: "Name Already Used"}
 		}
 		if strings.Contains(str, "leader_fk") {
-			return http.StatusNotFound
+			return response.Response{Status: http.StatusNotFound, Message: "Leader Not Found"}
 		}
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 	clan.Id = int(id)
 
-	return http.StatusOK
+	return response.Response{Status: http.StatusOK, Message: "Clan Created"}
 }
 
-func (cr ClanRepository) JoinClan(playerID int, clanID int, txn *sql.Tx) int {
+func (cr ClanRepository) JoinClan(playerID int, clanID int, txn *sql.Tx) response.Response {
 	stmt, err := txn.Prepare(`INSERT INTO clan_player(
 								player_id,
 								clan_id)
 							VALUES (?,?);`)
 	defer stmt.Close()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	_, err = stmt.Exec(playerID, clanID)
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "Duplicate") {
-			return http.StatusBadRequest
+			return response.Response{Status: http.StatusOK, Message: "Player is Already in the Clan"}
 		}
 		if strings.Contains(str, "player_fk") {
-			return http.StatusNotFound
+			return response.Response{Status: http.StatusNotFound, Message: "Player Not Found"}
 		}
 		if strings.Contains(str, "clan_fk") {
-			return http.StatusNotFound
+			return response.Response{Status: http.StatusNotFound, Message: "Clan Not Found"}
 		}
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
-	return http.StatusOK
+	return response.Response{Status: http.StatusOK, Message: "Player Joined to the Clan"}
 
 }
 
-func (cr ClanRepository) GetClanPassword(clanID int, txn *sql.Tx) (string, int) {
+func (cr ClanRepository) GetClanPassword(clanID int, txn *sql.Tx) (string, response.Response) {
 	stmt, err := txn.Prepare(`SELECT 
 								hashed_password
 							FROM 
@@ -93,23 +94,23 @@ func (cr ClanRepository) GetClanPassword(clanID int, txn *sql.Tx) (string, int) 
 								clan_id = ?;`)
 	defer stmt.Close()
 	if err != nil {
-		return "", http.StatusInternalServerError
+		return "", response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	var password string
 	err = stmt.QueryRow(clanID).Scan(&password)
 
 	if err == sql.ErrNoRows {
-		return "", http.StatusNotFound
+		return "", response.Response{Status: http.StatusNotFound, Message: "Clan Not Found"}
 	}
 	if err != nil {
-		return "", http.StatusInternalServerError
+		return "", response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
-	return password, http.StatusOK
+	return password, response.Response{Status: http.StatusOK, Message: "OK"}
 
 }
 
-func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) int {
+func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.Tx) response.Response {
 	stmt, err := txn.Prepare(`UPDATE 
 								clan
 							SET 
@@ -118,22 +119,22 @@ func (cr ClanRepository) PutColeader(coleaderReq clan.ColeaderRequest, txn *sql.
 								clan_id = ?;`)
 	defer stmt.Close()
 	if err != nil {
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	_, err = stmt.Exec(coleaderReq.ColeaderId, coleaderReq.ClanId)
 	if err != nil {
 		str := err.Error()
 		if strings.Contains(str, "coleader_fk") {
-			return http.StatusNotFound
+			return response.Response{Status: http.StatusNotFound, Message: "Coleader Not Found"}
 		}
-		return http.StatusInternalServerError
+		return response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
-	return http.StatusOK
+	return response.Response{Status: http.StatusOK, Message: "Coleader Asigned"}
 }
 
-func (cr ClanRepository) GetClanLeader(clanID int, txn *sql.Tx) (int, int) {
+func (cr ClanRepository) GetClanLeader(clanID int, txn *sql.Tx) (int, response.Response) {
 	stmt, err := txn.Prepare(`SELECT 
 								leader_id
 							FROM 
@@ -142,23 +143,23 @@ func (cr ClanRepository) GetClanLeader(clanID int, txn *sql.Tx) (int, int) {
 								clan_id = ?;`)
 	defer stmt.Close()
 	if err != nil {
-		return -1, http.StatusInternalServerError
+		return -1, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	var LeaderId int
 	err = stmt.QueryRow(clanID).Scan(&LeaderId)
 
 	if err == sql.ErrNoRows {
-		return -1, http.StatusNotFound
+		return -1, response.Response{Status: http.StatusNotFound, Message: "Clan Not Found"}
 	}
 	if err != nil {
-		return -1, http.StatusInternalServerError
+		return -1, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
-	return LeaderId, http.StatusOK
+	return LeaderId, response.Response{Status: http.StatusOK, Message: "OK"}
 
 }
 
-func (cr ClanRepository) GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, int) {
+func (cr ClanRepository) GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, response.Response) {
 	stmt, err := txn.Prepare(`SELECT 
 								p.*
 							FROM 
@@ -168,12 +169,12 @@ func (cr ClanRepository) GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, i
 								p.active = true;`)
 	defer stmt.Close()
 	if err != nil {
-		return nil, http.StatusInternalServerError
+		return nil, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	rows, err := stmt.Query(clanID)
 	if err != nil {
-		return nil, http.StatusInternalServerError
+		return nil, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 	}
 
 	var players []player.Player
@@ -190,14 +191,14 @@ func (cr ClanRepository) GetPlayers(clanID int, txn *sql.Tx) ([]player.Player, i
 			&player.Active,
 		)
 		if err != nil {
-			return nil, http.StatusInternalServerError
+			return nil, response.Response{Status: http.StatusInternalServerError, Message: "Internal Server Error"}
 		}
 		players = append(players, player)
 
 	}
 	if noRows {
-		return nil, http.StatusNotFound
+		return nil, response.Response{Status: http.StatusNotFound, Message: "Clan Not Found"}
 	}
 
-	return players, http.StatusOK
+	return players, response.Response{Status: http.StatusOK, Message: "OK"}
 }

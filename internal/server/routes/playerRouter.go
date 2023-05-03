@@ -31,15 +31,15 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	playerID, err := strconv.Atoi(chi.URLParam(r, "playerId"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		// _, err = w.Write([]byte("400 Bad Request"))
+		_, err = w.Write([]byte("Bad Request"))
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
 		return
 	}
 
-	player, status := pr.Handler.GetPlayer(playerID, txn)
-	w.WriteHeader(status)
+	player, result := pr.Handler.GetPlayer(playerID, txn)
+	w.WriteHeader(result.Status)
 	resp, err := json.Marshal(player)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -81,9 +81,9 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 
 	player.SetDefaultValues()
 
-	status := pr.Handler.CreatePlayer(&player, txn)
+	result := pr.Handler.CreatePlayer(&player, txn)
 
-	w.WriteHeader(status)
+	w.WriteHeader(result.Status)
 
 	resp, err := json.Marshal(player)
 	if err != nil {
@@ -101,7 +101,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer txn.Rollback()
-	if status == http.StatusOK {
+	if result.Status == http.StatusOK {
 		txn.Commit()
 	}
 
@@ -135,8 +135,8 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 	player.Id = playerID
 	player.Active = true
 
-	status := pr.Handler.UpdatePlayer(player, txn)
-	w.WriteHeader(status)
+	result := pr.Handler.UpdatePlayer(player, txn)
+	w.WriteHeader(result.Status)
 
 	resp, err := json.Marshal(player)
 	if err != nil {
@@ -154,7 +154,7 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer txn.Rollback()
-	if status == http.StatusOK {
+	if result.Status == http.StatusOK {
 		txn.Commit()
 	}
 
@@ -181,11 +181,11 @@ func (pr playerRouter) DeletePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := pr.Handler.DeletePlayer(playerID, txn)
-	w.WriteHeader(status)
+	result := pr.Handler.DeletePlayer(playerID, txn)
+	w.WriteHeader(result.Status)
 
 	defer txn.Rollback()
-	if status == http.StatusOK {
+	if result.Status == http.StatusOK {
 		txn.Commit()
 	}
 }
@@ -212,8 +212,8 @@ func (pr playerRouter) DoMatchmaking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	players, status := pr.Handler.DoMatchmaking(playerStats, txn)
-	w.WriteHeader(status)
+	players, result := pr.Handler.DoMatchmaking(playerStats, txn)
+	w.WriteHeader(result.Status)
 	resp, err := json.Marshal(players)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
