@@ -47,6 +47,7 @@ func (cr clanRouter) CreateClan(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 	if clan.Name == "" || clan.HashedPassword == "" || clan.LeaderId == -1 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -64,6 +65,7 @@ func (cr clanRouter) CreateClan(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	result := cr.Handler.CreateClan(&clan, txn)
@@ -119,6 +121,7 @@ func (cr clanRouter) JoinClan(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 	if jr.Clan_Id == -1 || jr.Player_Id == -1 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -136,6 +139,7 @@ func (cr clanRouter) JoinClan(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	result := cr.Handler.JoinClan(&jr, txn)
@@ -191,6 +195,7 @@ func (cr clanRouter) PutColeader(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 	if coleaderReq.ClanId == -1 || coleaderReq.LeaderId == -1 || coleaderReq.ColeaderId == -1 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -208,6 +213,7 @@ func (cr clanRouter) PutColeader(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	result := cr.Handler.PutColeader(coleaderReq, txn)
@@ -262,6 +268,7 @@ func (cr clanRouter) GetPlayers(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	players, result := cr.Handler.GetPlayers(clanID, txn)

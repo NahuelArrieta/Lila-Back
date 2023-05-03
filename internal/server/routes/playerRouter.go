@@ -33,7 +33,17 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	playerID, err := strconv.Atoi(chi.URLParam(r, "playerId"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, err = w.Write([]byte("Bad Request"))
+		result := response.Response{Message: "Bad Request"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
@@ -88,6 +98,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&player)
@@ -107,6 +118,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	player.SetDefaultValues()
@@ -168,6 +180,7 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	if player.Id == -1 || player.Name == "" {
@@ -186,6 +199,7 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	// Not allowed to change the value active
@@ -244,10 +258,26 @@ func (pr playerRouter) DeletePlayer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	result := pr.Handler.DeletePlayer(playerID, txn)
 	w.WriteHeader(result.Status)
+
+	resp, err := result.BuildResponse(nil)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte("500: Internal Server Error"))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+		return
+	}
+
+	_, err = w.Write([]byte(resp))
+	if err != nil {
+		fmt.Println("Internal Fatal Error")
+	}
 
 	defer txn.Rollback()
 	if result.Status == http.StatusOK {
@@ -284,6 +314,7 @@ func (pr playerRouter) DoMatchmaking(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	if playerStats.Level == -1 || playerStats.Rank == -1 || playerStats.Winrate == -1 {
@@ -302,6 +333,7 @@ func (pr playerRouter) DoMatchmaking(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
+		return
 	}
 
 	players, result := pr.Handler.DoMatchmaking(playerStats, txn)
