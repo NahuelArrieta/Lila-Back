@@ -2,9 +2,11 @@ package routes
 
 import (
 	"Lila-Back/pkg/Domain/player"
+	"Lila-Back/pkg/Domain/response"
 	"Lila-Back/pkg/Handlers/playerHandler"
 	connection "Lila-Back/pkg/Helpers/Connection"
 	"encoding/json"
+
 	"fmt"
 	"net/http"
 	"strconv"
@@ -40,7 +42,7 @@ func (pr playerRouter) GetPlayer(w http.ResponseWriter, r *http.Request) {
 
 	player, result := pr.Handler.GetPlayer(playerID, txn)
 	w.WriteHeader(result.Status)
-	resp, err := json.Marshal(player)
+	resp, err := result.BuildResponse(player)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err = w.Write([]byte("500: Internal Server Error"))
@@ -70,13 +72,41 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	var player player.Player
 
 	err = json.NewDecoder(r.Body).Decode(&player)
-	if err != nil || player.Name == "" {
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		// _, err = w.Write([]byte("400 Bad Request"))
+		result := response.Response{Message: "Bad Request"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
-		return
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&player)
+	if player.Name == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		result := response.Response{Message: "Missing Parameters"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
 	}
 
 	player.SetDefaultValues()
@@ -85,7 +115,7 @@ func (pr playerRouter) CreatePlayer(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(result.Status)
 
-	resp, err := json.Marshal(player)
+	resp, err := result.BuildResponse(player)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err = w.Write([]byte("500: Internal Server Error"))
@@ -118,27 +148,53 @@ func (pr playerRouter) UpdatePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var player player.Player
+	player := player.Player{Id: -1}
 
 	err = json.NewDecoder(r.Body).Decode(&player)
-	playerID, err2 := strconv.Atoi(chi.URLParam(r, "playerId"))
 
-	if err != nil || err2 != nil || player.Name == "" {
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		// _, err = w.Write([]byte("400 Bad Request"))
+		result := response.Response{Message: "Bad Request"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
-		return
 	}
 
-	player.Id = playerID
+	if player.Id == -1 || player.Name == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		result := response.Response{Message: "Missing parameters"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
+	}
+
+	// Not allowed to change the value active
 	player.Active = true
 
 	result := pr.Handler.UpdatePlayer(player, txn)
 	w.WriteHeader(result.Status)
 
-	resp, err := json.Marshal(player)
+	resp, err := result.BuildResponse(player)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err = w.Write([]byte("500: Internal Server Error"))
@@ -174,11 +230,20 @@ func (pr playerRouter) DeletePlayer(w http.ResponseWriter, r *http.Request) {
 	playerID, err := strconv.Atoi(chi.URLParam(r, "playerId"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		// _, err = w.Write([]byte("400 Bad Request"))
+		result := response.Response{Message: "Bad Request"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
-		return
 	}
 
 	result := pr.Handler.DeletePlayer(playerID, txn)
@@ -203,18 +268,45 @@ func (pr playerRouter) DoMatchmaking(w http.ResponseWriter, r *http.Request) {
 	playerStats := player.PlayerStats{Level: -1, Rank: -1, Winrate: -1}
 
 	err = json.NewDecoder(r.Body).Decode(&playerStats)
-	if err != nil || playerStats.Level == -1 || playerStats.Rank == -1 || playerStats.Winrate == -1 {
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		// _, err = w.Write([]byte("400 Bad Request"))
+		result := response.Response{Message: "Bad Request"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
 		if err != nil {
 			fmt.Println("Internal Fatal Error")
 		}
-		return
+	}
+
+	if playerStats.Level == -1 || playerStats.Rank == -1 || playerStats.Winrate == -1 {
+		w.WriteHeader(http.StatusBadRequest)
+		result := response.Response{Message: "Missing Parameters"}
+		resp, err := result.BuildResponse(nil)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte("500: Internal Server Error"))
+			if err != nil {
+				fmt.Println("Internal Fatal Error")
+			}
+			return
+		}
+		_, err = w.Write([]byte(resp))
+		if err != nil {
+			fmt.Println("Internal Fatal Error")
+		}
 	}
 
 	players, result := pr.Handler.DoMatchmaking(playerStats, txn)
 	w.WriteHeader(result.Status)
-	resp, err := json.Marshal(players)
+	resp, err := result.BuildResponse(players)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err = w.Write([]byte("500: Internal Server Error"))
@@ -235,13 +327,13 @@ func (pr *playerRouter) Routes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"}, //--
+		AllowedOrigins: []string{"https://*", "http://*"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	}))
 
 	r.Get("/{playerId}", pr.GetPlayer)
 	r.Post("/", pr.CreatePlayer)
-	r.Put("/{playerId}", pr.UpdatePlayer)
+	r.Put("/", pr.UpdatePlayer)
 	r.Delete("/{playerId}", pr.DeletePlayer)
 
 	r.Put("/matchmaking", pr.DoMatchmaking)
